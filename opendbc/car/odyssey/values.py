@@ -37,10 +37,12 @@ class CarControllerParams:
   # STEER_DELTA_UP = 3  # min/max in 0.33s for all Honda
   # STEER_DELTA_DOWN = 3
 
+  STEER_MAX_LOOKUP = [5, 17], [3.5, 2.5]
+
   STEER_STEP = 1 # 100Hz
   STEER_MAX = 3  # Nm
-  STEER_DELTA_UP = 3 / 100       # 3Nm/s
-  STEER_DELTA_DOWN = 12 / 100     # 12 Nm/s
+  STEER_DELTA_UP = 4 / 100       # 4Nm/s
+  STEER_DELTA_DOWN = 8 / 100     # 8 Nm/s
   STEER_ERROR_MAX = 999     # max delta between torque cmd and torque motor
 
   def __init__(self, CP):
@@ -138,7 +140,8 @@ class HondaOdysseyStepperServoConfig(PlatformConfig):
 class CAR(Platforms):
   HONDA_ODYSSEY_2005 = HondaOdysseyStepperServoConfig(
     [HondaCarDocs("Honda Odyssey 2005")],
-    CarSpecs(mass=1700, wheelbase=3.0, steerRatio=16.2, centerToFrontRatio=0.45, tireStiffnessFactor=0.85), # TODO: centerToFrontRatio and tireStiffnessFactor are guesses
+    CarSpecs(mass=1700, wheelbase=3.0, steerRatio=22.5, centerToFrontRatio=0.45, tireStiffnessFactor=1.0), # TODO: steerRatio doesn't match actual car, check SSC config
+    # CarSpecs(mass=1700, wheelbase=3.0, steerRatio=16.2, centerToFrontRatio=0.45, tireStiffnessFactor=0.85),
   )
 
 

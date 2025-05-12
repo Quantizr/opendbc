@@ -110,7 +110,7 @@ class CarState(CarStateBase):
 
 
     self.accurate_steer_angle_seen = False
-    self.angle_offset = FirstOrderFilter(None, 60.0, DT_CTRL*100, initialized=False)
+    self.angle_offset = FirstOrderFilter(None, 30.0, DT_CTRL*50, initialized=False)
 
     self.wheel_speed_ratio = FirstOrderFilter(None, 0.5, DT_CTRL, initialized=False)
     self.steering_angle = FirstOrderFilter(None, 0.5, DT_CTRL, initialized=False)
@@ -205,16 +205,26 @@ class CarState(CarStateBase):
     ret.leftBlinker = cp.vl["LIGHTS"]["LEFT_TURN_SIGNAL"] == 1
     ret.rightBlinker = cp.vl["LIGHTS"]["RIGHT_TURN_SIGNAL"] == 1
 
-    ret.steeringPressed = False
-    ret.steeringTorque = 0
+    # ret.steeringPressed = False
+    # ret.steeringTorque = 0
 
-    # ret.steeringPressed = ret.gasPressed # no torque sensor, so lightly pressing the gas indicates driver intention
+    # no torque sensor, so lightly pressing the gas indicates driver intention
+    # ret.steeringPressed = ret.gasPressed
     # if ret.steeringPressed and ret.leftBlinker:
     #   ret.steeringTorque = 1
     # elif ret.steeringPressed and  ret.rightBlinker:
     #   ret.steeringTorque = -1
     # else:
     #   ret.steeringTorque = 0
+
+    # no torque sensor, so lightly pressing the gas indicates driver intention (only when indicating)
+    if ret.leftBlinker or ret.rightBlinker:
+        ret.steeringPressed = ret.gasPressed
+        if ret.steeringPressed:
+            ret.steeringTorque = 1 if ret.leftBlinker else -1
+    else:
+        ret.steeringPressed = False
+        ret.steeringTorque = 0
 
     # ret.brakeHoldActive = cp.vl["VSA_STATUS"]["BRAKE_HOLD_ACTIVE"] == 1
 
@@ -316,18 +326,18 @@ class CarState(CarStateBase):
         (cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FR"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RR"])
       )
       self.steering_angle.update(ssc_angle)
-      if self.offset_counter < 100:
+      if self.offset_counter < 50:
         self.offset_counter += 1
     else:
       self.wheel_speed_ratio.initialized = False
       self.steering_angle.initialized = False
       self.offset_counter = 0
 
-    if self.offset_counter >= 100:
+    if self.offset_counter >= 50:
       self.accurate_steer_angle_seen = True
 
     if self.accurate_steer_angle_seen:
-      if self.wheel_speed_ratio.x > 0.9995 and self.wheel_speed_ratio.x < 1.0005 and self.offset_counter >= 100 and cp.can_valid:
+      if self.wheel_speed_ratio.x > 0.9995 and self.wheel_speed_ratio.x < 1.0005 and self.offset_counter >= 50 and cp.can_valid:
         self.angle_offset.update(self.steering_angle.x)
         self.offset_counter = 0
 
