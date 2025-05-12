@@ -11,23 +11,12 @@ bool honda_fmax_limit_check(float val, const float MAX_VAL, const float MIN_VAL)
 }
 
 enum {
-  HONDA_BTN_NONE = 0,
+  ODYSSEY_BTN_NONE = 0,
   // HONDA_BTN_MAIN = 1,
-  HONDA_BTN_SET = 1,
-  HONDA_BTN_RESUME = 2,
-  HONDA_BTN_CANCEL = 3,
+  ODYSSEY_BTN_SET = 1,
+  ODYSSEY_BTN_RESUME = 2,
+  ODYSSEY_BTN_CANCEL = 3,
 };
-
-static int honda_brake = 0;
-static bool honda_brake_switch_prev = false;
-static bool honda_alt_brake_msg = false;
-static bool honda_fwd_brake = false;
-static bool honda_bosch_long = false;
-static bool honda_bosch_radarless = false;
-typedef enum {HONDA_NIDEC, HONDA_BOSCH} HondaHw;
-static HondaHw honda_hw = HONDA_NIDEC;
-
-
 
 
 #define KPH_TO_MS 0.277778
@@ -61,44 +50,44 @@ float angle_rate_down = 0;
 float honda_max_angle = 0;
 float max_tq_rate = 0;
 
-float honda_speed = 0;
+float odyssey_speed = 0;
 float actuator_torque;
 
 
-static int honda_get_pt_bus(void) {
+static int odyssey_get_pt_bus(void) {
   return 0;
 }
 
-static uint32_t honda_get_checksum(const CANPacket_t *to_push) {
-  int checksum_byte = GET_LEN(to_push) - 1U;
-  return (uint8_t)(GET_BYTE(to_push, checksum_byte)) & 0xFU;
-}
+// static uint32_t honda_get_checksum(const CANPacket_t *to_push) {
+//   int checksum_byte = GET_LEN(to_push) - 1U;
+//   return (uint8_t)(GET_BYTE(to_push, checksum_byte)) & 0xFU;
+// }
 
-static uint32_t honda_compute_checksum(const CANPacket_t *to_push) {
-  int len = GET_LEN(to_push);
-  uint8_t checksum = 0U;
-  unsigned int addr = GET_ADDR(to_push);
-  while (addr > 0U) {
-    checksum += (uint8_t)(addr & 0xFU); addr >>= 4;
-  }
-  for (int j = 0; j < len; j++) {
-    uint8_t byte = GET_BYTE(to_push, j);
-    checksum += (uint8_t)(byte & 0xFU) + (byte >> 4U);
-    if (j == (len - 1)) {
-      checksum -= (byte & 0xFU);  // remove checksum in message
-    }
-  }
-  return (uint8_t)((8U - checksum) & 0xFU);
-}
+// static uint32_t honda_compute_checksum(const CANPacket_t *to_push) {
+//   int len = GET_LEN(to_push);
+//   uint8_t checksum = 0U;
+//   unsigned int addr = GET_ADDR(to_push);
+//   while (addr > 0U) {
+//     checksum += (uint8_t)(addr & 0xFU); addr >>= 4;
+//   }
+//   for (int j = 0; j < len; j++) {
+//     uint8_t byte = GET_BYTE(to_push, j);
+//     checksum += (uint8_t)(byte & 0xFU) + (byte >> 4U);
+//     if (j == (len - 1)) {
+//       checksum -= (byte & 0xFU);  // remove checksum in message
+//     }
+//   }
+//   return (uint8_t)((8U - checksum) & 0xFU);
+// }
 
-static uint8_t honda_get_counter(const CANPacket_t *to_push) {
-  int counter_byte = GET_LEN(to_push) - 1U;
-  return (GET_BYTE(to_push, counter_byte) >> 4U) & 0x3U;
-}
+// static uint8_t honda_get_counter(const CANPacket_t *to_push) {
+//   int counter_byte = GET_LEN(to_push) - 1U;
+//   return (GET_BYTE(to_push, counter_byte) >> 4U) & 0x3U;
+// }
 
-static void honda_rx_hook(const CANPacket_t *to_push) {
+static void odyssey_rx_hook(const CANPacket_t *to_push) {
   const bool pcm_cruise = true; // ((honda_hw == HONDA_BOSCH) && !honda_bosch_long) || (honda_hw == HONDA_NIDEC);
-  int pt_bus = honda_get_pt_bus();
+  int pt_bus = odyssey_get_pt_bus();
 
   int addr = GET_ADDR(to_push);
   int bus = GET_BUS(to_push);
@@ -107,11 +96,11 @@ static void honda_rx_hook(const CANPacket_t *to_push) {
   if (addr == 0x0C8) { //0x0C8 = ENGINE_DATA
     // first 2 bytes
     vehicle_moving = GET_BYTE(to_push, 0) | GET_BYTE(to_push, 1);
-    float speed = ((GET_BYTE(to_push, 0) << 8) | GET_BYTE(to_push, 1)) * 0.01 * KPH_TO_MS;
-    angle_rate_up = interpolate(BMW_ANGLE_RATE_WINDUP, honda_speed) + BMW_MARGIN;   // deg/1s
-    angle_rate_down = interpolate(BMW_ANGLE_RATE_UNWIND, honda_speed) + BMW_MARGIN; // deg/1s
-    honda_max_angle = interpolate(BMW_LOOKUP_MAX_ANGLE, honda_speed) + BMW_MARGIN;
-    max_tq_rate = interpolate(BMW_MAX_TQ_RATE, honda_speed) + BMW_MARGIN;
+    // float speed = ((GET_BYTE(to_push, 0) << 8) | GET_BYTE(to_push, 1)) * 0.01 * KPH_TO_MS;
+    // angle_rate_up = interpolate(BMW_ANGLE_RATE_WINDUP, odyssey_speed) + BMW_MARGIN;   // deg/1s
+    // angle_rate_down = interpolate(BMW_ANGLE_RATE_UNWIND, odyssey_speed) + BMW_MARGIN; // deg/1s
+    // honda_max_angle = interpolate(BMW_LOOKUP_MAX_ANGLE, odyssey_speed) + BMW_MARGIN;
+    // max_tq_rate = interpolate(BMW_MAX_TQ_RATE, odyssey_speed) + BMW_MARGIN;
   }
 
   // check ACC main state
@@ -152,14 +141,14 @@ static void honda_rx_hook(const CANPacket_t *to_push) {
     // }
 
     // enter controls on the falling edge of set or resume
-    bool set = (button != HONDA_BTN_SET) && (cruise_button_prev == HONDA_BTN_SET);
-    bool res = (button != HONDA_BTN_RESUME) && (cruise_button_prev == HONDA_BTN_RESUME);
+    bool set = (button != ODYSSEY_BTN_SET) && (cruise_button_prev == ODYSSEY_BTN_SET);
+    bool res = (button != ODYSSEY_BTN_RESUME) && (cruise_button_prev == ODYSSEY_BTN_RESUME);
     if (acc_main_on && !pcm_cruise && (set || res)) {
       controls_allowed = true;
     }
 
     // exit controls once main or cancel are pressed
-    if ((button == HONDA_BTN_CANCEL)) {
+    if ((button == ODYSSEY_BTN_CANCEL)) {
       controls_allowed = false;
     }
     cruise_button_prev = button;
@@ -216,7 +205,9 @@ static void honda_rx_hook(const CANPacket_t *to_push) {
   }
 }
 
-static bool honda_tx_hook(const CANPacket_t *to_send) {
+static bool odyssey_tx_hook(const CANPacket_t *to_send) {
+
+  UNUSED(to_send);
 
   // const LongitudinalLimits HONDA_BOSCH_LONG_LIMITS = {
   //   .max_accel = 200,   // accel is used for brakes
@@ -234,51 +225,51 @@ static bool honda_tx_hook(const CANPacket_t *to_send) {
   // };
 
   bool tx = true;
-  int addr = GET_ADDR(to_send);
-  int bus = GET_BUS(to_send);
+  // int addr = GET_ADDR(to_send);
+  // int bus = GET_BUS(to_send);
 
-  int bus_pt = honda_get_pt_bus();
+  // int bus_pt = odyssey_get_pt_bus();
 
   // if (!msg_allowed(addr, bus, BMW_TX_MSGS, sizeof(BMW_TX_MSGS) / sizeof(BMW_TX_MSGS[0]))) {
   //   tx = 0;
   // }
 
   // do not transmit CAN message if steering angle too high
-  if (addr == 558) {
-    if (((GET_BYTE(to_send, 1) >> 4) & 0b11u) != 0x0){ //control enabled
-      float steer_torque = ((float)(int8_t)(GET_BYTE(to_send, 4))) * CAN_ACTUATOR_TQ_FAC; //Nm
-      if (honda_fmax_limit_check(steer_torque - actuator_torque, max_tq_rate, -max_tq_rate)){
-        // puts("Violation torque rate");
-        // printf("Tq: %f, ActTq: %f, Max: %f\n", steer_torque, actuator_torque, max_tq_rate);
-        tx = 0;
-      }
-    }
-    float desired_angle = 0;
-    if (((GET_BYTE(to_send, 1) >> 4) & 0b11u) == 0x2){ //position control enabled
-      float angle_delta_req = ((float)(int16_t)((GET_BYTE(to_send, 2)) | (GET_BYTE(to_send, 3) << 8))) * CAN_ACTUATOR_POS_FAC; //deg/10ms
-      desired_angle = honda_rt_angle_last + angle_delta_req; //measured + requested delta
+  // if (addr == 558) {
+  //   if (((GET_BYTE(to_send, 1) >> 4) & 0b11u) != 0x0){ //control enabled
+  //     float steer_torque = ((float)(int8_t)(GET_BYTE(to_send, 4))) * CAN_ACTUATOR_TQ_FAC; //Nm
+  //     if (honda_fmax_limit_check(steer_torque - actuator_torque, max_tq_rate, -max_tq_rate)){
+  //       // puts("Violation torque rate");
+  //       // printf("Tq: %f, ActTq: %f, Max: %f\n", steer_torque, actuator_torque, max_tq_rate);
+  //       tx = 0;
+  //     }
+  //   }
+  //   float desired_angle = 0;
+  //   if (((GET_BYTE(to_send, 1) >> 4) & 0b11u) == 0x2){ //position control enabled
+  //     float angle_delta_req = ((float)(int16_t)((GET_BYTE(to_send, 2)) | (GET_BYTE(to_send, 3) << 8))) * CAN_ACTUATOR_POS_FAC; //deg/10ms
+  //     desired_angle = honda_rt_angle_last + angle_delta_req; //measured + requested delta
 
-      if (controls_allowed == true) {
-        bool violation = false;
-        //check for max angles
-        violation |= honda_fmax_limit_check(desired_angle, honda_max_angle, -honda_max_angle);
-        // puts("Violation desired angle");
-        //angle is rate limited in carcontrols so it shouldn't exceed max delta
-        float angle_delta_req_side = (honda_desired_angle_last >= 0.) ? angle_delta_req : -angle_delta_req;
-        violation |= honda_fmax_limit_check(angle_delta_req_side, angle_rate_up, -angle_rate_down);
-        // puts("Violation  delta");
+  //     if (controls_allowed == true) {
+  //       bool violation = false;
+  //       //check for max angles
+  //       violation |= honda_fmax_limit_check(desired_angle, honda_max_angle, -honda_max_angle);
+  //       // puts("Violation desired angle");
+  //       //angle is rate limited in carcontrols so it shouldn't exceed max delta
+  //       float angle_delta_req_side = (honda_desired_angle_last >= 0.) ? angle_delta_req : -angle_delta_req;
+  //       violation |= honda_fmax_limit_check(angle_delta_req_side, angle_rate_up, -angle_rate_down);
+  //       // puts("Violation  delta");
 
-        if (violation) {
-          tx = 0;
-          desired_angle = honda_desired_angle_last; //nothing was sent - hold to previous
-        }
-      }
-    }
-    honda_desired_angle_last = desired_angle;
-  }
-  if(controls_allowed == false){
-    tx = 0;
-  }
+  //       if (violation) {
+  //         tx = 0;
+  //         desired_angle = honda_desired_angle_last; //nothing was sent - hold to previous
+  //       }
+  //     }
+  //   }
+  //   honda_desired_angle_last = desired_angle;
+  // }
+  // if(controls_allowed == false) {
+  //   tx = 0;
+  // }
 
   return tx;
 
@@ -374,7 +365,7 @@ static bool honda_tx_hook(const CANPacket_t *to_send) {
 }
 
 
-static safety_config honda_odyssey_init(uint16_t param) {
+static safety_config odyssey_init(uint16_t param) {
   // UNUSED(param);
   // controls_allowed = false;
   // honda_speed = 0;
@@ -382,7 +373,7 @@ static safety_config honda_odyssey_init(uint16_t param) {
   // safety_config ret;
   // return ret;
 
-  static const CanMsg ODYSSEY_TX_MSGS[] = {{0x22E, 1, 8, .check_relay = false}}; //STEERING_COMMAND
+  static const CanMsg ODYSSEY_TX_MSGS[] = {{0x22E, 1, 5, .check_relay = false}}; //STEERING_COMMAND
 
   static RxCheck odyssey_rx_checks[] = {
     {.msg = {{0x405, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 3U}, { 0 }, { 0 }}}, //BODY
@@ -403,9 +394,9 @@ static safety_config honda_odyssey_init(uint16_t param) {
 
 
 const safety_hooks honda_odyssey_hooks = {
-  .init = honda_odyssey_init,
-  .rx = honda_rx_hook,
-  .tx = honda_tx_hook,
+  .init = odyssey_init,
+  .rx = odyssey_rx_hook,
+  .tx = odyssey_tx_hook,
   // .get_counter = honda_get_counter,
   // .get_checksum = honda_get_checksum,
   // .compute_checksum = honda_compute_checksum,
