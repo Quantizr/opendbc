@@ -37,7 +37,7 @@ class CarControllerParams:
   # STEER_DELTA_UP = 3  # min/max in 0.33s for all Honda
   # STEER_DELTA_DOWN = 3
 
-  STEER_MAX_LOOKUP = [5, 17], [3.5, 2.5]
+  STEER_MAX_LOOKUP = [5, 17], [3, 2.5]
 
   STEER_STEP = 1 # 100Hz
   STEER_MAX = 3  # Nm
@@ -140,7 +140,7 @@ class HondaOdysseyStepperServoConfig(PlatformConfig):
 class CAR(Platforms):
   HONDA_ODYSSEY_2005 = HondaOdysseyStepperServoConfig(
     [HondaCarDocs("Honda Odyssey 2005")],
-    CarSpecs(mass=1700, wheelbase=3.0, steerRatio=22.5, centerToFrontRatio=0.45, tireStiffnessFactor=1.0), # TODO: steerRatio doesn't match actual car, check SSC config
+    CarSpecs(mass=1700, wheelbase=3.0, steerRatio=16.2, centerToFrontRatio=0.45, tireStiffnessFactor=1.0), # TODO: steerRatio doesn't match actual car, check SSC config
     # CarSpecs(mass=1700, wheelbase=3.0, steerRatio=16.2, centerToFrontRatio=0.45, tireStiffnessFactor=0.85),
   )
 
