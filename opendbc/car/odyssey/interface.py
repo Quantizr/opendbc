@@ -36,9 +36,9 @@ class CarInterface(CarInterfaceBase):
 
     ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.allOutput)] # TODO: TEMPORARY MAKE SURE TO CHANGE BACK
 
-    ret.steerActuatorDelay = 0.4
+    ret.steerActuatorDelay = 0.1
     ret.steerLimitTimer = 0.4
-    CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
+    CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning) #, use_steering_angle=False)
 
     ret.steerControlType = structs.CarParams.SteerControlType.torque
     ret.radarUnavailable = True

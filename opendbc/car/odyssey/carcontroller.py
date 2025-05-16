@@ -243,16 +243,16 @@ class CarController(CarControllerBase, MadsCarController):
     #     self.speed = pcm_speed
     #     self.gas = pcm_accel / self.params.NIDEC_GAS_MAX
 
-    steer_max = round(float(np.interp(CS.out.vEgoRaw, CarControllerParams.STEER_MAX_LOOKUP[0],
-                                      CarControllerParams.STEER_MAX_LOOKUP[1])), 2)
+    # steer_max = round(float(np.interp(CS.out.vEgoRaw, CarControllerParams.STEER_MAX_LOOKUP[0],
+    #                                   CarControllerParams.STEER_MAX_LOOKUP[1])), 2)
 
     # *** apply steering torque ***
     if CC.latActive:
-      new_steer = actuators.torque * steer_max #CarControllerParams.STEER_MAX
+      new_steer = actuators.torque * CarControllerParams.STEER_MAX
       # explicitly clip torque before sending on CAN
       apply_steer = apply_dist_to_meas_limits(new_steer, self.apply_steer_last, CS.out.steeringTorqueEps,
                                           CarControllerParams.STEER_DELTA_UP, CarControllerParams.STEER_DELTA_DOWN,
-                                          CarControllerParams.STEER_ERROR_MAX, steer_max) #CarControllerParams.STEER_MAX)
+                                          CarControllerParams.STEER_ERROR_MAX, CarControllerParams.STEER_MAX)
       can_sends.append(hondacan.create_steer_command(self.frame, hondacan.SteeringModes.TorqueControl, apply_steer))
     elif not CS.out.brakePressed and not CS.out.gasPressed and self.apply_steer_last != 0:
       can_sends.append(hondacan.create_steer_command(self.frame, hondacan.SteeringModes.SoftOff, self.apply_steer_last))
@@ -270,7 +270,7 @@ class CarController(CarControllerBase, MadsCarController):
     self.cruise_enabled_prev = CC.enabled
 
     new_actuators = actuators.as_builder()
-    new_actuators.torque = self.apply_steer_last / steer_max # CarControllerParams.STEER_MAX
+    new_actuators.torque = self.apply_steer_last / CarControllerParams.STEER_MAX
     new_actuators.torqueOutputCan = self.apply_steer_last
 
     # new_actuators.speed = self.calc_desired_speed
