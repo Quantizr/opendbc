@@ -34,7 +34,7 @@ class CarInterface(CarInterfaceBase):
   def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, alpha_long, docs) -> structs.CarParams:
     ret.brand = "odyssey"
 
-    ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.allOutput)] # TODO: TEMPORARY MAKE SURE TO CHANGE BACK
+    ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hondaOdyssey)] # TODO: TEMPORARY MAKE SURE TO CHANGE BACK
 
     ret.steerActuatorDelay = 0.1
     ret.steerLimitTimer = 0.4
