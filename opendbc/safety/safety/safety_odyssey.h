@@ -2,8 +2,126 @@
 
 #include "safety_declarations.h"
 
-void odyssey_rx_hook(const CANPacket_t *to_push) {
-  UNUSED(to_push);
+
+static void odyssey_rx_hook(const CANPacket_t *to_push) {
+  // UNUSED(to_push);
+  const bool pcm_cruise = true; // ((honda_hw == HONDA_BOSCH) && !honda_bosch_long) || (honda_hw == HONDA_NIDEC);
+  int pt_bus = 0;
+
+  int addr = GET_ADDR(to_push);
+  int bus = GET_BUS(to_push);
+
+  // sample speed
+  if (addr == 0x0C8) { //0x0C8 = ENGINE_DATA
+    // first 2 bytes
+    vehicle_moving = GET_BYTE(to_push, 0) | GET_BYTE(to_push, 1);
+    // float speed = ((GET_BYTE(to_push, 0) << 8) | GET_BYTE(to_push, 1)) * 0.01 * KPH_TO_MS;
+    // angle_rate_up = interpolate(BMW_ANGLE_RATE_WINDUP, odyssey_speed) + BMW_MARGIN;   // deg/1s
+    // angle_rate_down = interpolate(BMW_ANGLE_RATE_UNWIND, odyssey_speed) + BMW_MARGIN; // deg/1s
+    // honda_max_angle = interpolate(BMW_LOOKUP_MAX_ANGLE, odyssey_speed) + BMW_MARGIN;
+    // max_tq_rate = interpolate(BMW_MAX_TQ_RATE, odyssey_speed) + BMW_MARGIN;
+  }
+
+  // check ACC main state
+  // 0x326 for all Bosch and some Nidec, 0x1A6 for some Nidec
+  if (addr == 0xD4) { //0xD4 = CRUISE_CONTROL
+    acc_main_on = GET_BIT(to_push, 5U);
+    if (!acc_main_on) {
+      controls_allowed = false;
+    }
+  }
+
+  // enter controls when PCM enters cruise state
+  if (pcm_cruise && (addr == 0x12C)) { //POWERTRAIN_DATA
+    const bool cruise_engaged = GET_BIT(to_push, 51U);
+    // engage on rising edge
+    if (cruise_engaged && !cruise_engaged_prev) {
+      controls_allowed = true;
+    }
+
+    if (!cruise_engaged) {
+      controls_allowed = false;
+    }
+    cruise_engaged_prev = cruise_engaged;
+  }
+
+  // state machine to enter and exit controls for button enabling
+  // 0x1A6 for the ILX, 0x296 for the Civic Touring
+  // if ((addr == 0xD4) && (bus == pt_bus)) {
+  //   // int button = (GET_BYTE(to_push, 0) & 0xE0U) >> 5;
+  //   int button = (GET_BYTE(to_push, 0) & 0xC0U) >> 6; // top two bits
+
+  //   // int cruise_setting = (GET_BYTE(to_push, (addr == 0x296) ? 0U : 5U) & 0x0CU) >> 2U;
+  //   // if (cruise_setting == 1) {
+  //   //   mads_button_press = MADS_BUTTON_PRESSED;
+  //   // } else if (cruise_setting == 0) {
+  //   //   mads_button_press = MADS_BUTTON_NOT_PRESSED;
+  //   // } else {
+  //   // }
+
+  //   // enter controls on the falling edge of set or resume
+  //   bool set = (button != ODYSSEY_BTN_SET) && (cruise_button_prev == ODYSSEY_BTN_SET);
+  //   bool res = (button != ODYSSEY_BTN_RESUME) && (cruise_button_prev == ODYSSEY_BTN_RESUME);
+  //   if (acc_main_on && !pcm_cruise && (set || res)) {
+  //     controls_allowed = true;
+  //   }
+
+  //   // exit controls once main or cancel are pressed
+  //   if ((button == ODYSSEY_BTN_CANCEL)) {
+  //     controls_allowed = false;
+  //   }
+  //   cruise_button_prev = button;
+  // }
+
+  // user brake signal on 0x17C reports applied brake from computer brake on accord
+  // and crv, which prevents the usual brake safety from working correctly. these
+  // cars have a signal on 0x1BE which only detects user's brake being applied so
+  // in these cases, this is used instead.
+  // most hondas: 0x17C
+  // accord, crv: 0x1BE
+  // if (honda_alt_brake_msg) {
+  //   if (addr == 0x1BE) {
+  //     brake_pressed = GET_BIT(to_push, 4U);
+  //   }
+  // } else {
+  if (addr == 0x12C) {
+    // // also if brake switch is 1 for two CAN frames, as brake pressed is delayed
+    // const bool brake_switch = GET_BIT(to_push, 32U);
+    // brake_pressed = (GET_BIT(to_push, 53U)) || (brake_switch && honda_brake_switch_prev);
+    // honda_brake_switch_prev = brake_switch;
+    brake_pressed = GET_BIT(to_push, 48U);
+  }
+  // }
+
+  if (addr == 0xAA) { // DRIVER_THROTTLE_POSITION
+    gas_pressed = GET_BYTE(to_push, 0) > 1U;
+  }
+
+  // // disable stock Honda AEB in alternative experience
+  // if (!(alternative_experience & ALT_EXP_DISABLE_STOCK_AEB)) {
+  //   if ((bus == 2) && (addr == 0x1FA)) {
+  //     bool honda_stock_aeb = GET_BIT(to_push, 29U);
+  //     int honda_stock_brake = (GET_BYTE(to_push, 0) << 2) | (GET_BYTE(to_push, 1) >> 6);
+
+  //     // Forward AEB when stock braking is higher than openpilot braking
+  //     // only stop forwarding when AEB event is over
+  //     if (!honda_stock_aeb) {
+  //       honda_fwd_brake = false;
+  //     } else if (honda_stock_brake >= honda_brake) {
+  //       honda_fwd_brake = true;
+  //     } else {
+  //       // Leave Honda forward brake as is
+  //     }
+  //   }
+  // }
+
+  // if ((addr == 559)  && (bus == 1)) {
+  //   actuator_torque = ((float)(int8_t)(GET_BYTE(to_push, 2))) * CAN_ACTUATOR_TQ_FAC; //Nm
+
+  //   if((((GET_BYTE(to_push, 1)>>4)>>CAN_ACTUATOR_CONTROL_STATUS_SOFTOFF_BIT) & 0x1) != 0x0){ //Soft off status means motor is shutting down due to error
+  //     controls_allowed = false;
+  //   }
+  // }
 }
 
 static bool odyssey_tx_hook(const CANPacket_t *to_send) {
