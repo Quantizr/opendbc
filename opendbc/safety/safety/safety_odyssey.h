@@ -130,11 +130,30 @@ static bool odyssey_tx_hook(const CANPacket_t *to_send) {
 }
 
 static safety_config odyssey_init(uint16_t param) {
-  // Enables passthrough mode where relay is open and bus 0 gets forwarded to bus 2 and vice versa
-  const uint16_t ALLOUTPUT_PARAM_PASSTHROUGH = 1;
-  controls_allowed = true;
-  bool alloutput_passthrough = GET_FLAG(param, ALLOUTPUT_PARAM_PASSTHROUGH);
-  return (safety_config){NULL, 0, NULL, 0, !alloutput_passthrough};
+
+  static const CanMsg ODYSSEY_TX_MSGS[] = {{0x22E, 1, 5, .check_relay = false}}; //STEERING_COMMAND
+
+  static RxCheck odyssey_rx_checks[] = {
+    {.msg = {{0x405, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 3U}, { 0 }, { 0 }}}, //BODY
+    {.msg = {{0x6A, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 143U}, { 0 }, { 0 }}}, //BRAKE_PRESSURE
+    {.msg = {{0xD4, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 100U}, { 0 }, { 0 }}}, //CRUISE_CONTROL
+    {.msg = {{0xAA, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 100U}, { 0 }, { 0 }}}, //DRIVER_THROTTLE_POSITION
+    {.msg = {{0xC8, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 100U}, { 0 }, { 0 }}}, //ENGINE_DATA
+    {.msg = {{0x188, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 100U}, { 0 }, { 0 }}}, //GEARBOX
+    {.msg = {{0x1F4, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 25U}, { 0 }, { 0 }}}, //LIGHTS
+    {.msg = {{0x12C, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 100U}, { 0 }, { 0 }}}, //POWERTRAIN_DATA
+    {.msg = {{0x1C0, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 48U}, { 0 }, { 0 }}}, //WHEEL_SPEEDS
+    {.msg = {{0x22F, 1, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 100U}, { 0 }, { 0 }}}, //STEERING_STATUS
+  };
+
+  UNUSED(param);
+  return BUILD_SAFETY_CFG(odyssey_rx_checks, ODYSSEY_TX_MSGS);
+
+  // // Enables passthrough mode where relay is open and bus 0 gets forwarded to bus 2 and vice versa
+  // const uint16_t ALLOUTPUT_PARAM_PASSTHROUGH = 1;
+  // controls_allowed = true;
+  // bool alloutput_passthrough = GET_FLAG(param, ALLOUTPUT_PARAM_PASSTHROUGH);
+  // return (safety_config){NULL, 0, NULL, 0, !alloutput_passthrough};
 }
 
 const safety_hooks honda_odyssey_hooks = {
