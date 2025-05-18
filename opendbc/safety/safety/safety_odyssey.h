@@ -147,7 +147,9 @@ static safety_config odyssey_init(uint16_t param) {
   };
 
   UNUSED(param);
-  return BUILD_SAFETY_CFG(odyssey_rx_checks, ODYSSEY_TX_MSGS);
+  safety_config ret = BUILD_SAFETY_CFG(odyssey_rx_checks, ODYSSEY_TX_MSGS);
+  ret.disable_forwarding = true;
+  return ret;
 
   // // Enables passthrough mode where relay is open and bus 0 gets forwarded to bus 2 and vice versa
   // const uint16_t ALLOUTPUT_PARAM_PASSTHROUGH = 1;
