@@ -111,7 +111,7 @@ class CarState(CarStateBase):
 
     self.accurate_steer_angle_seen = False
     # self.angle_offset = FirstOrderFilter(None, 30.0, DT_CTRL*50, initialized=False)
-    self.angle_offset = FirstOrderFilter(None, 15.0, DT_CTRL, initialized=False)
+    self.angle_offset = FirstOrderFilter(None, 5.0, DT_CTRL, initialized=False)
 
     self.wheel_speed_ratio = FirstOrderFilter(None, 0.5, DT_CTRL, initialized=False)
     self.steering_angle = FirstOrderFilter(None, 0.5, DT_CTRL, initialized=False)
@@ -351,7 +351,7 @@ class CarState(CarStateBase):
         (cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FR"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RR"]))
       if wheel_speed_ratio_live > 0.9995 and wheel_speed_ratio_live < 1.0005:
         self.angle_offset.update(ssc_angle)
-        if self.offset_counter < 20:
+        if self.offset_counter < 10:
           self.offset_counter += 1
         else:
           self.accurate_steer_angle_seen = True
