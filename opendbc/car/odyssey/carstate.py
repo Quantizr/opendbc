@@ -203,29 +203,12 @@ class CarState(CarStateBase):
     # ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_stalk(
     #   250, cp.vl["SCM_FEEDBACK"]["LEFT_BLINKER"], cp.vl["SCM_FEEDBACK"]["RIGHT_BLINKER"])
 
-    ret.leftBlinker = cp.vl["LIGHTS"]["LEFT_TURN_SIGNAL"] == 1
-    ret.rightBlinker = cp.vl["LIGHTS"]["RIGHT_TURN_SIGNAL"] == 1
+    # ret.leftBlinker = cp.vl["LIGHTS"]["LEFT_TURN_SIGNAL"] == 1
+    # ret.rightBlinker = cp.vl["LIGHTS"]["RIGHT_TURN_SIGNAL"] == 1
 
-    # ret.steeringPressed = False
-    # ret.steeringTorque = 0
+    ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_stalk(
+       250, cp.vl["LIGHTS"]["LEFT_TURN_SIGNAL"], cp.vl["LIGHTS"]["RIGHT_TURN_SIGNAL"])
 
-    # no torque sensor, so lightly pressing the gas indicates driver intention
-    # ret.steeringPressed = ret.gasPressed
-    # if ret.steeringPressed and ret.leftBlinker:
-    #   ret.steeringTorque = 1
-    # elif ret.steeringPressed and  ret.rightBlinker:
-    #   ret.steeringTorque = -1
-    # else:
-    #   ret.steeringTorque = 0
-
-    # no torque sensor, so lightly pressing the gas indicates driver intention (only when indicating)
-    if ret.leftBlinker or ret.rightBlinker:
-        ret.steeringPressed = ret.gasPressed
-        if ret.steeringPressed:
-            ret.steeringTorque = 1 if ret.leftBlinker else -1
-    else:
-        ret.steeringPressed = False
-        ret.steeringTorque = 0
 
     # ret.brakeHoldActive = cp.vl["VSA_STATUS"]["BRAKE_HOLD_ACTIVE"] == 1
 
@@ -248,7 +231,31 @@ class CarState(CarStateBase):
 
 
     ret.gas = cp.vl["DRIVER_THROTTLE_POSITION"]["DRIVER_THROTTLE_POSITION"]
-    ret.gasPressed = ret.gas > 1e-5
+    ret.gasPressed = ret.gas > 1 # for some reason sometimes `gas` = 1 even when not pressed...
+
+
+    # ret.steeringPressed = False
+    # ret.steeringTorque = 0
+
+    # no torque sensor, so lightly pressing the gas indicates driver intention
+    # ret.steeringPressed = ret.gasPressed
+    # if ret.steeringPressed and ret.leftBlinker:
+    #   ret.steeringTorque = 1
+    # elif ret.steeringPressed and  ret.rightBlinker:
+    #   ret.steeringTorque = -1
+    # else:
+    #   ret.steeringTorque = 0
+
+    # no torque sensor, so lightly pressing the gas indicates driver intention (only when indicating)
+    ret.steeringPressed = False
+    ret.steeringTorque = 0
+    if ret.leftBlinker or ret.rightBlinker:
+        ret.steeringPressed = ret.gasPressed
+        if ret.steeringPressed:
+            ret.steeringTorque = 1 if ret.leftBlinker else -1
+    # else:
+    #     ret.steeringPressed = False
+    #     ret.steeringTorque = 0
 
     # ret.steeringTorque = cp.vl["STEER_STATUS"]["STEER_TORQUE_SENSOR"]
     # ret.steeringTorqueEps = cp.vl["STEER_MOTOR_TORQUE"]["MOTOR_TORQUE"]
@@ -318,7 +325,6 @@ class CarState(CarStateBase):
 
 
     ret.steeringTorqueEps =  cp_actuator.vl['STEERING_STATUS']['STEERING_TORQUE']
-    ssc_angle = cp_actuator.vl['STEERING_STATUS']['STEERING_ANGLE']
     ret.steerFaultTemporary = int(cp_actuator.vl['STEERING_STATUS']['CONTROL_STATUS']) & 0x4 != 0
 
     # if v_wheel > 3: # m/s ~= 6.7mph
@@ -345,6 +351,8 @@ class CarState(CarStateBase):
     #   if self.angle_offset.initialized:
     #     ret.steeringAngleOffsetDeg = self.angle_offset.x
     #     ret.steeringAngleDeg = ssc_angle - self.angle_offset.x
+
+    ssc_angle = cp_actuator.vl['STEERING_STATUS']['STEERING_ANGLE']
 
     if v_wheel > 3: # m/s ~= 6.7mph
       wheel_speed_ratio_live = ((cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FL"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RL"]) /
