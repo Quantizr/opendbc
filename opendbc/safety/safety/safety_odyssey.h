@@ -6,10 +6,10 @@
 static void odyssey_rx_hook(const CANPacket_t *to_push) {
   // UNUSED(to_push);
   const bool pcm_cruise = true; // ((honda_hw == HONDA_BOSCH) && !honda_bosch_long) || (honda_hw == HONDA_NIDEC);
-  int pt_bus = 0;
+  // int pt_bus = 0;
 
   int addr = GET_ADDR(to_push);
-  int bus = GET_BUS(to_push);
+  // int bus = GET_BUS(to_push);
 
   // sample speed
   if (addr == 0x0C8) { //0x0C8 = ENGINE_DATA
