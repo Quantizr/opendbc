@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
+from math import exp
+
 import numpy as np
-from opendbc.car import get_safety_config, structs
+from opendbc.car import get_safety_config, get_friction, structs
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.disable_ecu import disable_ecu
 # from opendbc.car.honda.hondacan import CanBus
 # from opendbc.car.honda.values import CarControllerParams, HondaFlags, CAR, HONDA_BOSCH, HONDA_BOSCH_CANFD, \
 #                                                  HONDA_NIDEC_ALT_SCM_MESSAGES, HONDA_BOSCH_RADARLESS, HondaSafetyFlags
+from opendbc.car.odyssey.values import CAR
 from opendbc.car.odyssey.carcontroller import CarController
 from opendbc.car.odyssey.carstate import CarState
 from opendbc.car.odyssey.radar_interface import RadarInterface
-from opendbc.car.interfaces import CarInterfaceBase
+from opendbc.car.interfaces import CarInterfaceBase, TorqueFromLateralAccelCallbackType, FRICTION_THRESHOLD, LatControlInputs, NanoFFModel
 
 TransmissionType = structs.CarParams.TransmissionType
 
@@ -30,15 +33,50 @@ class CarInterface(CarInterfaceBase):
   #     ACCEL_MAX_BP = [cruise_speed - 2., cruise_speed - .2]
   #     return CarControllerParams.NIDEC_ACCEL_MIN, np.interp(current_speed, ACCEL_MAX_BP, ACCEL_MAX_VALS)
 
+  # from car.gm.interface
+  def torque_from_lateral_accel_siglin(self, latcontrol_inputs: LatControlInputs, torque_params: structs.CarParams.LateralTorqueTuning,
+                                       lateral_accel_error: float, lateral_accel_deadzone: float, friction_compensation: bool, gravity_adjusted: bool) -> float:
+    friction = get_friction(lateral_accel_error, lateral_accel_deadzone, FRICTION_THRESHOLD, torque_params, friction_compensation)
+
+    def sig(val):
+      # https://timvieira.github.io/blog/post/2014/02/11/exp-normalize-trick
+      if val >= 0:
+        return 1 / (1 + exp(-val)) - 0.5
+      else:
+        z = exp(val)
+        return z / (1 + z) - 0.5
+
+    # The "lat_accel vs torque" relationship is assumed to be the sum of "sigmoid + linear" curves
+    # An important thing to consider is that the slope at 0 should be > 0 (ideally >1)
+    # This has big effect on the stability about 0 (noise when going straight)
+    # ToDo: To generalize to other GMs, explore tanh function as the nonlinear
+
+    #a, b, c = torque_params.sigmoidSharpness, torque_params.sigmoidTorqueGain, torque_params.latAccelFactor
+
+    # params for odyssey estimated with LiveTorqueParameter filtered points
+    sigmoidSharpness = 4.0
+    sigmoidTorqueGain = 1.0
+    latAccelFactor = 0.15
+
+    steer_torque = (sig(latcontrol_inputs.lateral_acceleration * sigmoidSharpness) * sigmoidTorqueGain) + (latcontrol_inputs.lateral_acceleration * latAccelFactor)
+    return float(steer_torque) + friction
+
+  def torque_from_lateral_accel(self) -> TorqueFromLateralAccelCallbackType:
+    if self.CP.carFingerprint == CAR.HONDA_ODYSSEY_2005:
+      return self.torque_from_lateral_accel_siglin
+    else:
+      return self.torque_from_lateral_accel_linear
+
   @staticmethod
   def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, alpha_long, docs) -> structs.CarParams:
     ret.brand = "odyssey"
 
     ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hondaOdyssey)] # TODO: TEMPORARY MAKE SURE TO CHANGE BACK
 
-    ret.steerActuatorDelay = 0.1
+    ret.steerActuatorDelay = 0.15
     ret.steerLimitTimer = 0.4
-    CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning) #, use_steering_angle=False)
+    CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning) #, steering_angle_deadzone_deg=2.0) # deadzone is actually 3.5 deg on each side...
+    # ret.lateralTuning.torque.kp = 0.6
 
     ret.steerControlType = structs.CarParams.SteerControlType.torque
     ret.radarUnavailable = True
