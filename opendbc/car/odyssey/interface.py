@@ -71,9 +71,9 @@ class CarInterface(CarInterfaceBase):
   def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, alpha_long, docs) -> structs.CarParams:
     ret.brand = "odyssey"
 
-    ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hondaOdyssey)] # TODO: TEMPORARY MAKE SURE TO CHANGE BACK
+    ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hondaOdyssey)]
 
-    ret.steerActuatorDelay = 0.15
+    ret.steerActuatorDelay = 0.2
     ret.steerLimitTimer = 0.4
     CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning) #, steering_angle_deadzone_deg=2.0) # deadzone is actually 3.5 deg on each side...
     # ret.lateralTuning.torque.kp = 0.6
