@@ -1,4 +1,3 @@
-from opendbc.car.structs import CarParams
 from opendbc.car.odyssey.values import CAR
 
 FINGERPRINTS = {
