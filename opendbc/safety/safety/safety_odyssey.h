@@ -116,7 +116,7 @@ static bool odyssey_tx_hook(const CANPacket_t *to_send) {
 
 static safety_config odyssey_init(uint16_t param) {
 
-  static const CanMsg ODYSSEY_TX_MSGS[] = {{0x22E, 1, 5, .check_relay = false}}; //STEERING_COMMAND
+  static const CanMsg ODYSSEY_TX_MSGS[] = {{0x22E, 1, 5, .check_relay = true}}; //STEERING_COMMAND
 
   static RxCheck odyssey_rx_checks[] = {
     {.msg = {{0x405, 0, 8, .ignore_checksum = true, .ignore_counter = true, .frequency = 3U}, { 0 }, { 0 }}}, //BODY
