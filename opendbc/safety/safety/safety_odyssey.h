@@ -74,6 +74,13 @@ static void odyssey_rx_hook(const CANPacket_t *to_push) {
   }
 
   if ((addr == 0x22F)  && (bus == 1)) {
+    int torque_meas_new = (int8_t)(GET_BYTE(to_push, 2)) * (int)(CAN_ACTUATOR_TQ_FAC * 1000); //Nm * 1000
+    update_sample(&torque_meas, torque_meas_new);
+
+    // increase torque_meas by 1 to be conservative on rounding
+    torque_meas.min--;
+    torque_meas.max++;
+
     if((((GET_BYTE(to_push, 1)>>4)>>CAN_ACTUATOR_CONTROL_STATUS_SOFTOFF_BIT) & 0x1) != 0x0) { //Soft off status means motor is shutting down due to error
       controls_allowed = false;
     }
@@ -116,6 +123,8 @@ static bool odyssey_tx_hook(const CANPacket_t *to_send) {
 
 static safety_config odyssey_init(uint16_t param) {
 
+  // Note: even though this message can't ever spontaneously appear on destination bus, we need check_relay = true for
+  // MADS safety tests since stock_ecu_check is called when check_relay = true and mads_state_update happens in stock_ecu_check
   static const CanMsg ODYSSEY_TX_MSGS[] = {{0x22E, 1, 5, .check_relay = true}}; //STEERING_COMMAND
 
   static RxCheck odyssey_rx_checks[] = {
