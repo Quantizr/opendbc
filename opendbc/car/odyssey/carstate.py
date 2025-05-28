@@ -1,3 +1,4 @@
+from collections import deque
 import numpy as np
 
 from opendbc.can.can_define import CANDefine
@@ -28,8 +29,9 @@ class CarState(CarStateBase):
     self.dash_speed_seen = False
 
     self.accurate_steer_angle_seen = False
-    # self.angle_offset = FirstOrderFilter(None, 30.0, DT_CTRL*50, initialized=False)
-    self.angle_offset = FirstOrderFilter(None, 5.0, DT_CTRL, initialized=False)
+    self.angle_offset = 0
+    self.angle_offset_finalized = False
+    self.angle_offset_deque = deque(maxlen=500) # technically 5 seconds of driving perfectly straight, realistically will not be driving perfecgly straight
 
     self.wheel_speed_ratio = FirstOrderFilter(None, 0.5, DT_CTRL, initialized=False)
     self.steering_angle = FirstOrderFilter(None, 0.5, DT_CTRL, initialized=False)
@@ -157,19 +159,39 @@ class CarState(CarStateBase):
 
     ssc_angle = cp_actuator.vl['STEERING_STATUS']['STEERING_ANGLE']
 
+    # if v_wheel > 3: # m/s ~= 6.7mph
+    #   wheel_speed_ratio_live = ((cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FL"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RL"]) /
+    #     (cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FR"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RR"]))
+    #   if wheel_speed_ratio_live > 0.9995 and wheel_speed_ratio_live < 1.0005:
+    #     self.angle_offset.update(ssc_angle)
+    #     if self.offset_counter < 10:
+    #       self.offset_counter += 1
+    #     else:
+    #       self.accurate_steer_angle_seen = True
+
+    # if self.angle_offset.initialized:
+    #   ret.steeringAngleOffsetDeg = self.angle_offset.x
+    #   ret.steeringAngleDeg = ssc_angle - self.angle_offset.x
+
     if v_wheel > 3: # m/s ~= 6.7mph
       wheel_speed_ratio_live = ((cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FL"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RL"]) /
         (cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FR"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RR"]))
       if wheel_speed_ratio_live > 0.9995 and wheel_speed_ratio_live < 1.0005:
-        self.angle_offset.update(ssc_angle)
-        if self.offset_counter < 10:
-          self.offset_counter += 1
-        else:
+        self.angle_offset_deque.append(ssc_angle)
+        if len(self.angle_offset_deque) > 20:
           self.accurate_steer_angle_seen = True
+          current_offset = sum(self.angle_offset_deque) / len(self.angle_offset_deque)
+          if len(self.angle_offset_deque) < self.angle_offset_deque.maxlen: # update angle_offset until maxlen samples collected
+            self.angle_offset = current_offset
+          elif abs(current_offset - self.angle_offset) > 5: # reset angle_offset on >5 deg belt slip, will result in alert on screen
+            self.angle_offset = current_offset # make the angle_offset the current best estimate before clearing
+            self.accurate_steer_angle_seen = False
+            self.angle_offset_deque.clear() # we clear because otherwise all maxlen samples need to be cycled through to get accurate reading
+        else:
+          self.accurate_steer_angle_seen = False
 
-    if self.angle_offset.initialized:
-      ret.steeringAngleOffsetDeg = self.angle_offset.x
-      ret.steeringAngleDeg = ssc_angle - self.angle_offset.x
+    ret.steeringAngleOffsetDeg = self.angle_offset
+    ret.steeringAngleDeg = ssc_angle - self.angle_offset
 
     ret.vehicleSensorsInvalid = not self.accurate_steer_angle_seen
 

@@ -38,7 +38,7 @@ class CarInterface(CarInterfaceBase):
     # params for odyssey estimated with LiveTorqueParameter filtered points
     sigmoidSharpness = 4.0
     sigmoidTorqueGain = 1.0
-    latAccelFactor = 0.15
+    latAccelFactor = 0.2
 
     steer_torque = (sig(latcontrol_inputs.lateral_acceleration * sigmoidSharpness) * sigmoidTorqueGain) + (latcontrol_inputs.lateral_acceleration * latAccelFactor)
     return float(steer_torque) + friction

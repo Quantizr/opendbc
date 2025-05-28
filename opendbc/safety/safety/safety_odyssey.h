@@ -35,15 +35,7 @@ static void odyssey_rx_hook(const CANPacket_t *to_push) {
   // enter controls when PCM enters cruise state
   if (pcm_cruise && (addr == 0x12C)) { //POWERTRAIN_DATA
     const bool cruise_engaged = GET_BIT(to_push, 51U);
-    // engage on rising edge
-    if (cruise_engaged && !cruise_engaged_prev) {
-      controls_allowed = true;
-    }
-
-    if (!cruise_engaged) {
-      controls_allowed = false;
-    }
-    cruise_engaged_prev = cruise_engaged;
+    pcm_cruise_check(cruise_engaged);
   }
 
   // TODO: for future with brake/throttle actuator where cruise might not be engaged
