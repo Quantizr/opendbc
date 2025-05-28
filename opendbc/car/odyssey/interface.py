@@ -36,12 +36,15 @@ class CarInterface(CarInterfaceBase):
     #a, b, c = torque_params.sigmoidSharpness, torque_params.sigmoidTorqueGain, torque_params.latAccelFactor
 
     # params for odyssey estimated with LiveTorqueParameter filtered points
-    sigmoidSharpness = 4.0
-    sigmoidTorqueGain = 1.0
+    sigmoidSharpness = 5.0
+    sigmoidTorqueGain = 0.8
     latAccelFactor = 0.2
+    horizontalOffset = -0.1
+    verticalOffset = -0.1
 
-    steer_torque = (sig(latcontrol_inputs.lateral_acceleration * sigmoidSharpness) * sigmoidTorqueGain) + (latcontrol_inputs.lateral_acceleration * latAccelFactor)
-    return float(steer_torque) + friction
+    latAccelWithOffset = latcontrol_inputs.lateral_acceleration + horizontalOffset
+    steer_torque = (sig(latAccelWithOffset * sigmoidSharpness) * sigmoidTorqueGain) + (latAccelWithOffset * latAccelFactor)
+    return float(steer_torque) + friction + verticalOffset
 
   def torque_from_lateral_accel(self) -> TorqueFromLateralAccelCallbackType:
     if self.CP.carFingerprint == CAR.HONDA_ODYSSEY_2005:
@@ -55,7 +58,7 @@ class CarInterface(CarInterfaceBase):
 
     ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hondaOdyssey)]
 
-    ret.steerActuatorDelay = 0.2
+    ret.steerActuatorDelay = 0.15
     ret.steerLimitTimer = 0.4
     CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning) #, steering_angle_deadzone_deg=2.0) # deadzone is actually 3.5 deg on each side...
     # ret.lateralTuning.torque.kp = 0.6
