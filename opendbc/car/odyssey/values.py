@@ -50,7 +50,7 @@ class HondaOdysseyStepperServoConfig(PlatformConfig):
 class CAR(Platforms):
   HONDA_ODYSSEY_2005 = HondaOdysseyStepperServoConfig(
     [HondaCarDocs("Honda Odyssey 2005")],
-    CarSpecs(mass=1700, wheelbase=3.0, steerRatio=23.5, centerToFrontRatio=0.45, tireStiffnessFactor=1.0), # steerRatio doesn't match actual car, not sure why
+    CarSpecs(mass=1700, wheelbase=3.0, steerRatio=25, centerToFrontRatio=0.45, tireStiffnessFactor=1.0), # steerRatio doesn't match actual car, not sure why
     # CarSpecs(mass=1700, wheelbase=3.0, steerRatio=16.2, centerToFrontRatio=0.45, tireStiffnessFactor=0.85),
   )
 
