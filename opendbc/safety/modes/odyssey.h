@@ -1,6 +1,6 @@
 #pragma once
 
-#include "safety_declarations.h"
+#include "opendbc/safety/safety_declarations.h"
 
 #define CAN_ACTUATOR_TQ_FAC 0.125
 #define CAN_ACTUATOR_CONTROL_STATUS_SOFTOFF_BIT 2
