@@ -46,7 +46,12 @@ class CarInterface(CarInterfaceBase):
     steer_torque = (sig(latAccelWithOffset * sigmoidSharpness) * sigmoidTorqueGain) + (latAccelWithOffset * latAccelFactor)
 
     friction_mod = friction/(1 + abs(latcontrol_inputs.lateral_acceleration-horizontalOffset)) # decrease friction with higher latAccel
-    return float(steer_torque) + friction_mod + verticalOffset
+
+    siglinTorque = float(steer_torque) + friction_mod + verticalOffset
+
+    lowSpeedLatAccelFactor = 1.0
+    lowSpeedTorque = (latcontrol_inputs.lateral_acceleration / float(lowSpeedLatAccelFactor)) + friction
+    return np.interp(latcontrol_inputs.vego, [0., 15.], [lowSpeedTorque, siglinTorque])
 
   def torque_from_lateral_accel(self) -> TorqueFromLateralAccelCallbackType:
     if self.CP.carFingerprint == CAR.HONDA_ODYSSEY_2005:
