@@ -37,10 +37,10 @@ class CarInterface(CarInterfaceBase):
 
     # params for odyssey estimated with LiveTorqueParameter filtered points
     sigmoidSharpness = 4.5
-    sigmoidTorqueGain = 0.9
+    sigmoidTorqueGain = 1.0
     latAccelFactor = 0.2
-    horizontalOffset = -0.13
-    verticalOffset = -0.13
+    horizontalOffset = -0.1
+    verticalOffset = -0.1
 
     latAccelWithOffset = latcontrol_inputs.lateral_acceleration + horizontalOffset
     steer_torque = (sig(latAccelWithOffset * sigmoidSharpness) * sigmoidTorqueGain) + (latAccelWithOffset * latAccelFactor)
@@ -51,7 +51,7 @@ class CarInterface(CarInterfaceBase):
 
     lowSpeedLatAccelFactor = 1.0
     lowSpeedTorque = (latcontrol_inputs.lateral_acceleration / float(lowSpeedLatAccelFactor)) + friction
-    return np.interp(latcontrol_inputs.vego, [0., 15.], [lowSpeedTorque, siglinTorque])
+    return np.interp(latcontrol_inputs.vego, [0., 20.], [lowSpeedTorque, siglinTorque])
 
   def torque_from_lateral_accel(self) -> TorqueFromLateralAccelCallbackType:
     if self.CP.carFingerprint == CAR.HONDA_ODYSSEY_2005:
