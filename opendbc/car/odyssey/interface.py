@@ -33,25 +33,26 @@ class CarInterface(CarInterfaceBase):
     # This has big effect on the stability about 0 (noise when going straight)
     # ToDo: To generalize to other GMs, explore tanh function as the nonlinear
 
-    #a, b, c = torque_params.sigmoidSharpness, torque_params.sigmoidTorqueGain, torque_params.latAccelFactor
+    def model(x, a, b, c, d, e):
+      xs = x - d
+      return sig(a * xs) * b + c * xs + e
 
-    # params for odyssey estimated with LiveTorqueParameter filtered points
     sigmoidSharpness = 5.0
     sigmoidTorqueGain = 0.95
     latAccelFactor = 0.19
     horizontalOffset = -0.06
     verticalOffset = -0.08
 
-    latAccelWithOffset = latcontrol_inputs.lateral_acceleration + horizontalOffset
-    steer_torque = (sig(latAccelWithOffset * sigmoidSharpness) * sigmoidTorqueGain) + (latAccelWithOffset * latAccelFactor)
+    torque = model(latcontrol_inputs.lateral_acceleration, sigmoidSharpness, sigmoidTorqueGain, latAccelFactor, horizontalOffset, verticalOffset)
+
+    lowSpeedTorque = model(latcontrol_inputs.lateral_acceleration, sigmoidSharpness, sigmoidTorqueGain*1.4, latAccelFactor*1.4, 0, 0)
+
+    lowSpeedLatAccelFactor = 0.6
+    lowSpeedTorqueLinear = (latcontrol_inputs.lateral_acceleration / float(lowSpeedLatAccelFactor))
 
     friction_mod = friction/(1 + abs(latcontrol_inputs.lateral_acceleration-horizontalOffset)) # decrease friction with higher latAccel
 
-    siglinTorque = float(steer_torque) + friction_mod + verticalOffset
-
-    lowSpeedLatAccelFactor = 0.7
-    lowSpeedTorque = (latcontrol_inputs.lateral_acceleration / float(lowSpeedLatAccelFactor)) + friction
-    return np.interp(latcontrol_inputs.vego, [0., 15.], [lowSpeedTorque, siglinTorque])
+    return np.interp(latcontrol_inputs.vego, [0., 7., 17.], [lowSpeedTorqueLinear, lowSpeedTorque, torque]) + friction_mod
 
   def torque_from_lateral_accel(self) -> TorqueFromLateralAccelCallbackType:
     if self.CP.carFingerprint == CAR.HONDA_ODYSSEY_2005:
