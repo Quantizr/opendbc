@@ -160,7 +160,7 @@ class CarState(CarStateBase):
     #     ret.steeringAngleOffsetDeg = self.angle_offset.x
     #     ret.steeringAngleDeg = ssc_angle - self.angle_offset.x
 
-    ssc_angle = cp_actuator.vl['STEERING_STATUS']['STEERING_ANGLE']
+    ssc_angle = cp_actuator.vl['STEERING_STATUS']['STEERING_ANGLE'] * 2 # scale * 2 since we scaled gear ratio * 2 to virtually scale torque
 
     if v_wheel > 3: # m/s ~= 6.7mph
       wheel_speed_ratio_live = ((cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FL"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RL"]) /
