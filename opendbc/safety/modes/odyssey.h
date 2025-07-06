@@ -83,15 +83,15 @@ static bool odyssey_tx_hook(const CANPacket_t *to_send) {
 
   // StepperServoCan adjusts torque in increments of 0.125 Nm
   const TorqueSteeringLimits ODYSSEY_STEERING_LIMITS = { // multiplied by 1000 since max_torque, max_rate_up, etc. are ints
-    .max_torque = 2500, // 2.5 Nm * 1000
+    .max_torque = 5000, // 2.5 Nm * 1000 *2
     .dynamic_max_torque = false,
     // .max_torque_lookup = {
     //   {9., 17., 17.},
     //   {350, 250, 250},
     // },
-    .max_rate_up = 125, // real value should be 30 but torque is in 0.125 Nm increments
-    .max_rate_down = 125, // real value should be 50 but torque is in 0.125 Nm increments
-    .max_rt_delta = 1375, // max change per 250ms with 10% buffer, real max_rate_down * 100 * 0.25 * 1.1
+    .max_rate_up = 125, // real value should be 60 but torque is in 0.125 Nm increments
+    .max_rate_down = 125, // real value should be 100 but torque is in 0.125 Nm increments
+    .max_rt_delta = 2750, // max change per 250ms with 10% buffer, real max_rate_down * 100 * 0.25 * 1.1 * 2
     .max_torque_error = 1000,
     .type = TorqueMotorLimited,
   };
