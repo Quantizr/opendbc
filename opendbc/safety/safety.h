@@ -9,6 +9,7 @@
 // include the safety policies.
 #include "opendbc/safety/modes/defaults.h"
 #include "opendbc/safety/modes/honda.h"
+#include "opendbc/safety/modes/odyssey.h"
 #include "opendbc/safety/modes/toyota.h"
 #include "opendbc/safety/modes/tesla.h"
 #include "opendbc/safety/modes/gm.h"
@@ -414,6 +415,7 @@ int set_safety_hooks(uint16_t mode, uint16_t param) {
     {SAFETY_FORD, &ford_hooks},
     {SAFETY_RIVIAN, &rivian_hooks},
     {SAFETY_TESLA, &tesla_hooks},
+    {SAFETY_HONDA_ODYSSEY, &honda_odyssey_hooks},
 #ifdef CANFD
     {SAFETY_HYUNDAI_CANFD, &hyundai_canfd_hooks},
 #endif
