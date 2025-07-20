@@ -39,9 +39,9 @@ class CarInterface(CarInterfaceBase):
 
     sigmoidSharpness = 4.5
     sigmoidTorqueGain = 1.0
-    latAccelFactor = 0.14
-    horizontalOffset = -0.06
-    verticalOffset = -0.08
+    latAccelFactor = 0.16
+    horizontalOffset = -0.10
+    verticalOffset = -0.10
 
     torque = model(latcontrol_inputs.lateral_acceleration, sigmoidSharpness, sigmoidTorqueGain, latAccelFactor, horizontalOffset, verticalOffset)
 
