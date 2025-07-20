@@ -5,13 +5,16 @@ from opendbc.car.odyssey.odysseycan import SteeringModes, create_steer_command
 from opendbc.car.odyssey.values import CarControllerParams
 from opendbc.car.interfaces import CarControllerBase
 
+from opendbc.sunnypilot.car.honda.mads import MadsCarController
+
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 
 
-class CarController(CarControllerBase):
-  def __init__(self, dbc_names, CP):
-    CarControllerBase.__init__(self, dbc_names, CP)
+class CarController(CarControllerBase, MadsCarController):
+  def __init__(self, dbc_names, CP, CP_SP):
+    CarControllerBase.__init__(self, dbc_names, CP, CP_SP)
+    MadsCarController.__init__(self)
 
     self.braking = False
     self.brake_steady = 0.
@@ -28,7 +31,8 @@ class CarController(CarControllerBase):
 
     self.apply_steer_last = 0
 
-  def update(self, CC, CS, now_nanos):
+  def update(self, CC, CC_SP, CS, now_nanos):
+    MadsCarController.update(self, self.CP, CC, CC_SP)
     actuators = CC.actuators
 
     # Send CAN commands
