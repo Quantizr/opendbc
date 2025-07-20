@@ -16,8 +16,8 @@ BUTTONS_DICT = {CruiseButtons.RES_ACCEL: ButtonType.accelCruise, CruiseButtons.D
 
 
 class CarState(CarStateBase):
-  def __init__(self, CP):
-    super().__init__(CP)
+  def __init__(self, CP, CP_SP):
+    super().__init__(CP, CP_SP)
     can_define = CANDefine(DBC[CP.carFingerprint][Bus.pt])
 
     self.shifter_values = can_define.dv["GEARBOX"]["GEAR_SHIFTER"]
@@ -41,11 +41,12 @@ class CarState(CarStateBase):
 
     self.main_button = 0
 
-  def update(self, can_parsers) -> structs.CarState:
+  def update(self, can_parsers) -> tuple[structs.CarState, structs.CarStateSP]:
     cp = can_parsers[Bus.pt]
     cp_actuator = can_parsers[Bus.cam]
 
     ret = structs.CarState()
+    ret_sp = structs.CarStateSP()
 
     # car params
     v_weight_v = [0., 1.]  # don't trust smooth speed at low values to avoid premature zero snapping
@@ -100,6 +101,18 @@ class CarState(CarStateBase):
     ret.gasPressed = ret.gas > 1 # for some reason sometimes `gas` = 1 even when not pressed...
 
 
+    # ret.steeringPressed = False
+    # ret.steeringTorque = 0
+
+    # no torque sensor, so lightly pressing the gas indicates driver intention
+    # ret.steeringPressed = ret.gasPressed
+    # if ret.steeringPressed and ret.leftBlinker:
+    #   ret.steeringTorque = 1
+    # elif ret.steeringPressed and  ret.rightBlinker:
+    #   ret.steeringTorque = -1
+    # else:
+    #   ret.steeringTorque = 0
+
     # no torque sensor, so lightly pressing the gas indicates driver intention (only when indicating)
     ret.steeringPressed = False
     ret.steeringTorque = 0
@@ -122,6 +135,31 @@ class CarState(CarStateBase):
     ret.steeringTorqueEps =  cp_actuator.vl['STEERING_STATUS']['STEERING_TORQUE']
     ret.steerFaultTemporary = int(cp_actuator.vl['STEERING_STATUS']['CONTROL_STATUS']) & 0x4 != 0
 
+    # if v_wheel > 3: # m/s ~= 6.7mph
+    #   self.wheel_speed_ratio.update(
+    #     (cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FL"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RL"]) /
+    #     (cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FR"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RR"])
+    #   )
+    #   self.steering_angle.update(ssc_angle)
+    #   if self.offset_counter < 50:
+    #     self.offset_counter += 1
+    # else:
+    #   self.wheel_speed_ratio.initialized = False
+    #   self.steering_angle.initialized = False
+    #   self.offset_counter = 0
+
+    # if self.offset_counter >= 50:
+    #   self.accurate_steer_angle_seen = True
+
+    # if self.accurate_steer_angle_seen:
+    #   if self.wheel_speed_ratio.x > 0.9995 and self.wheel_speed_ratio.x < 1.0005 and self.offset_counter >= 50 and cp.can_valid:
+    #     self.angle_offset.update(self.steering_angle.x)
+    #     self.offset_counter = 0
+
+    #   if self.angle_offset.initialized:
+    #     ret.steeringAngleOffsetDeg = self.angle_offset.x
+    #     ret.steeringAngleDeg = ssc_angle - self.angle_offset.x
+
     ssc_angle = cp_actuator.vl['STEERING_STATUS']['STEERING_ANGLE'] * 2 # scale * 2 since we scaled gear ratio * 2 to virtually scale torque
 
     if v_wheel > 3: # m/s ~= 6.7mph
@@ -138,7 +176,33 @@ class CarState(CarStateBase):
       ret.steeringAngleOffsetDeg = self.angle_offset.x
       ret.steeringAngleDeg = ssc_angle - self.angle_offset.x
 
+    # if v_wheel > 3: # m/s ~= 6.7mph
+    #   wheel_speed_ratio_live = ((cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FL"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RL"]) /
+    #     (cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_FR"] + cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RR"]))
+    #   if wheel_speed_ratio_live > 0.9995 and wheel_speed_ratio_live < 1.0005:
+    #     self.angle_offset_deque.append(ssc_angle)
+    #     if len(self.angle_offset_deque) > 20:
+    #       self.accurate_steer_angle_seen = True
+    #       current_offset = sum(self.angle_offset_deque) / len(self.angle_offset_deque)
+    #       if len(self.angle_offset_deque) < self.angle_offset_deque.maxlen: # update angle_offset until maxlen samples collected
+    #         self.angle_offset = current_offset
+    #       elif abs(current_offset - self.angle_offset) > 5: # reset angle_offset on >5 deg belt slip, will result in alert on screen
+    #         self.angle_offset = current_offset # make the angle_offset the current best estimate before clearing
+    #         self.accurate_steer_angle_seen = False
+    #         self.angle_offset_deque.clear() # we clear because otherwise all maxlen samples need to be cycled through to get accurate reading
+    #     else:
+    #       self.accurate_steer_angle_seen = False
+
+    # ret.steeringAngleOffsetDeg = self.angle_offset
+    # ret.steeringAngleDeg = ssc_angle - self.angle_offset
+
     ret.vehicleSensorsInvalid = not self.accurate_steer_angle_seen
+
+    # if self.CP.enableBsm:
+    #   # BSM messages are on B-CAN, requires a panda forwarding B-CAN messages to CAN 0
+    #   # more info here: https://github.com/commaai/openpilot/pull/1867
+    #   ret.leftBlindspot = cp_body.vl["BSM_STATUS_LEFT"]["BSM_ALERT"] == 1
+    #   ret.rightBlindspot = cp_body.vl["BSM_STATUS_RIGHT"]["BSM_ALERT"] == 1
 
     ret.buttonEvents = [
       *create_button_events(self.cruise_buttons, prev_cruise_buttons, BUTTONS_DICT),
@@ -146,9 +210,10 @@ class CarState(CarStateBase):
     ]
 
 
-    return ret
+    return ret, ret_sp
 
-  def get_can_parsers(self, CP):
+  @staticmethod
+  def get_can_parsers(CP, CP_SP):
     pt_messages = [
     ("BODY", 3),
     ("BRAKE_PRESSURE", 143),
@@ -170,3 +235,4 @@ class CarState(CarStateBase):
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, 0),
       Bus.cam: CANParser('ocelot_controls', actuator_messages, 1),
     }
+  
