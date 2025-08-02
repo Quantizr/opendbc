@@ -21,7 +21,7 @@ static void odyssey_rx_hook(const CANPacket_t *to_push) {
 
   if (addr == 0x0C8) { //0x0C8 = ENGINE_DATA
     // first 2 bytes are XMISSION_SPEED
-    vehicle_moving = GET_BYTE(to_push, 0) | GET_BYTE(to_push, 1);
+    vehicle_moving = to_push->data[0] | to_push->data[1];
   }
 
   // check ACC main state
@@ -41,7 +41,7 @@ static void odyssey_rx_hook(const CANPacket_t *to_push) {
   // TODO: for future with brake/throttle actuator where cruise might not be engaged
   // state machine to enter and exit controls for button enabling
   // if (addr == 0xD4) { // CRUISE_CONTTROL
-  //   int button = (GET_BYTE(to_push, 0) & 0xC0U) >> 6; // top two bits
+  //   int button = (to_push->data[0] & 0xC0U) >> 6; // top two bits
 
   //   // enter controls on the falling edge of set or resume
   //   bool set = (button != ODYSSEY_BTN_SET) && (cruise_button_prev == ODYSSEY_BTN_SET);
@@ -62,18 +62,18 @@ static void odyssey_rx_hook(const CANPacket_t *to_push) {
   }
 
   if (addr == 0xAA) { // DRIVER_THROTTLE_POSITION
-    gas_pressed = GET_BYTE(to_push, 0) > 1U;
+    gas_pressed = to_push->data[0] > 1U;
   }
 
   if ((addr == 0x22F)  && (bus == 1)) {
-    int torque_meas_new = (int8_t)(GET_BYTE(to_push, 2)) * (int)(CAN_ACTUATOR_TQ_FAC * 1000); //Nm * 1000
+    int torque_meas_new = (int8_t)(to_push->data[2]) * (int)(CAN_ACTUATOR_TQ_FAC * 1000); //Nm * 1000
     update_sample(&torque_meas, torque_meas_new);
 
     // increase torque_meas by 1 to be conservative on rounding
     torque_meas.min--;
     torque_meas.max++;
 
-    if((((GET_BYTE(to_push, 1)>>4)>>CAN_ACTUATOR_CONTROL_STATUS_SOFTOFF_BIT) & 0x1) != 0x0) { //Soft off status means motor is shutting down due to error
+    if((((to_push->data[1]>>4)>>CAN_ACTUATOR_CONTROL_STATUS_SOFTOFF_BIT) & 0x1) != 0x0) { //Soft off status means motor is shutting down due to error
       controls_allowed = false;
     }
   }
@@ -104,8 +104,8 @@ static bool odyssey_tx_hook(const CANPacket_t *to_send) {
 
   // STEER: safety check
   if ((addr == 0x22E) && (bus == 1)) {
-    bool steer_req = ((GET_BYTE(to_send, 1) >> 4) & 0b11u) != 0x0;
-    int desired_torque = (int8_t)(GET_BYTE(to_send, 4)) * (int)(CAN_ACTUATOR_TQ_FAC * 1000); // multiplied by 1000 since TorqueSteeringLimits are ints
+    bool steer_req = ((to_send->data[1] >> 4) & 0b11u) != 0x0;
+    int desired_torque = (int8_t)(to_send->data[4]) * (int)(CAN_ACTUATOR_TQ_FAC * 1000); // multiplied by 1000 since TorqueSteeringLimits are ints
     if (steer_torque_cmd_checks(desired_torque, steer_req, ODYSSEY_STEERING_LIMITS)) {
       tx = false;
     }
