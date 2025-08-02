@@ -89,9 +89,7 @@ class CarState(CarStateBase):
     gear = int(cp.vl["GEARBOX"]["GEAR_SHIFTER"])
     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear, None))
 
-
-    ret.gas = cp.vl["DRIVER_THROTTLE_POSITION"]["DRIVER_THROTTLE_POSITION"]
-    ret.gasPressed = ret.gas > 1 # for some reason sometimes `gas` = 1 even when not pressed...
+    ret.gasPressed = cp.vl["DRIVER_THROTTLE_POSITION"]["DRIVER_THROTTLE_POSITION"] > 1 # for some reason sometimes `gas` = 1 even when not pressed...
 
 
     # ret.steeringPressed = False
