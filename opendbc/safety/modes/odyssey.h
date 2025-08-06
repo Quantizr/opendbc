@@ -16,8 +16,8 @@
 static void odyssey_rx_hook(const CANPacket_t *to_push) {
   const bool pcm_cruise = true;
 
-  int addr = GET_ADDR(to_push);
-  int bus = GET_BUS(to_push);
+  int addr = to_push->addr;
+  int bus = to_push->bus;
 
   if (addr == 0x0C8) { //0x0C8 = ENGINE_DATA
     // first 2 bytes are XMISSION_SPEED
@@ -96,10 +96,9 @@ static bool odyssey_tx_hook(const CANPacket_t *to_send) {
     .type = TorqueMotorLimited,
   };
 
-  UNUSED(to_send);
   bool tx = true;
-  int addr = GET_ADDR(to_send);
-  int bus = GET_BUS(to_send);
+  int addr = to_send->addr;
+  int bus = to_send->bus;
 
 
   // STEER: safety check
