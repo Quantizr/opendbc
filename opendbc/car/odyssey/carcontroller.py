@@ -1,6 +1,7 @@
 from collections import namedtuple
 
-from opendbc.car import structs, apply_dist_to_meas_limits
+from opendbc.car import structs
+from opendbc.car.lateral import apply_dist_to_meas_limits
 from opendbc.car.odyssey.odysseycan import SteeringModes, create_steer_command
 from opendbc.car.odyssey.values import CarControllerParams
 from opendbc.car.interfaces import CarControllerBase
