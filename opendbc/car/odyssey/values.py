@@ -13,6 +13,7 @@ GearShifter = structs.CarState.GearShifter
 class CarControllerParams:
   STEER_STEP = 1 # 100Hz
   STEER_MAX = 5  # Nm * 2
+  STEER_MAX_LOOKUP = [5, 17], [6.5, 5]
   STEER_DELTA_UP = 6 / 100       # 3 Nm/s
   STEER_DELTA_DOWN = 10 / 100     # 5 Nm/s
   STEER_ERROR_MAX = 1     # max delta between torque cmd and torque motor

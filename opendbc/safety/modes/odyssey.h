@@ -21,7 +21,9 @@ static void odyssey_rx_hook(const CANPacket_t *to_push) {
 
   if (addr == 0x0C8) { //0x0C8 = ENGINE_DATA
     // first 2 bytes are XMISSION_SPEED
-    vehicle_moving = to_push->data[0] | to_push->data[1];
+    float speed = ((to_push->data[0] << 8) | to_push->data[1]) * 0.01;
+    vehicle_moving = speed > 0.0;
+    UPDATE_VEHICLE_SPEED(speed * KPH_TO_MS);
   }
 
   // check ACC main state
@@ -84,11 +86,11 @@ static bool odyssey_tx_hook(const CANPacket_t *to_send) {
   // StepperServoCan adjusts torque in increments of 0.125 Nm
   const TorqueSteeringLimits ODYSSEY_STEERING_LIMITS = { // multiplied by 1000 since max_torque, max_rate_up, etc. are ints
     .max_torque = 5000, // 2.5 Nm * 1000 *2
-    .dynamic_max_torque = false,
-    // .max_torque_lookup = {
-    //   {9., 17., 17.},
-    //   {350, 250, 250},
-    // },
+    .dynamic_max_torque = true,
+    .max_torque_lookup = {
+      {5., 17., 17.},
+      {6500, 5000, 5000},
+    },
     .max_rate_up = 125, // real value should be 60 but torque is in 0.125 Nm increments
     .max_rate_down = 125, // real value should be 100 but torque is in 0.125 Nm increments
     .max_rt_delta = 2750, // max change per 250ms with 10% buffer, real max_rate_down * 100 * 0.25 * 1.1 * 2
