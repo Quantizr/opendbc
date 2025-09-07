@@ -1,7 +1,6 @@
-from collections import namedtuple
-
+import numpy as np
 from opendbc.car import structs
-from opendbc.car.lateral import apply_dist_to_meas_limits
+from opendbc.car.lateral import apply_dist_to_meas_limits_asym
 from opendbc.car.odyssey.odysseycan import SteeringModes, create_steer_command
 from opendbc.car.odyssey.values import CarControllerParams
 from opendbc.car.interfaces import CarControllerBase
@@ -39,13 +38,15 @@ class CarController(CarControllerBase, MadsCarController):
     # Send CAN commands
     can_sends = []
 
+    steer_max = float(np.interp(CS.out.vEgoRaw, CarControllerParams.STEER_MAX_LOOKUP[0], CarControllerParams.STEER_MAX_LOOKUP[1]))
+
     # *** apply steering torque ***
     if CC.latActive:
-      new_steer = actuators.torque * CarControllerParams.STEER_MAX
+      new_steer = CC.actuators.torque * steer_max
       # explicitly clip torque before sending on CAN
-      apply_steer = apply_dist_to_meas_limits(new_steer, self.apply_steer_last, CS.out.steeringTorqueEps,
+      apply_steer = apply_dist_to_meas_limits_asym(new_steer, self.apply_steer_last, CS.out.steeringTorqueEps,
                                           CarControllerParams.STEER_DELTA_UP, CarControllerParams.STEER_DELTA_DOWN,
-                                          CarControllerParams.STEER_ERROR_MAX, CarControllerParams.STEER_MAX)
+                                          CarControllerParams.STEER_ERROR_MAX, steer_max, steer_max*0.8)
       can_sends.append(create_steer_command(self.frame, SteeringModes.TorqueControl, apply_steer))
     elif not CS.out.brakePressed and not CS.out.gasPressed and self.apply_steer_last != 0:
       can_sends.append(create_steer_command(self.frame, SteeringModes.SoftOff, self.apply_steer_last))

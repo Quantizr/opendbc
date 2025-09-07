@@ -111,6 +111,27 @@ def apply_dist_to_meas_limits(val, val_last, val_meas,
 
   return float(val)
 
+def apply_dist_to_meas_limits_asym(val, val_last, val_meas,
+                              STEER_DELTA_UP, STEER_DELTA_DOWN,
+                              STEER_ERROR_MAX, STEER_MAX_POS, STEER_MAX_NEG):
+  # limits due to comparison of commanded val VS measured val (torque/angle/curvature)
+  max_lim = min(max(val_meas + STEER_ERROR_MAX, STEER_ERROR_MAX), STEER_MAX_POS)
+  min_lim = max(min(val_meas - STEER_ERROR_MAX, -STEER_ERROR_MAX), -STEER_MAX_NEG)
+
+  val = np.clip(val, min_lim, max_lim)
+
+  # slow rate if val increases in magnitude
+  if val_last > 0:
+    val = np.clip(val,
+                  max(val_last - STEER_DELTA_DOWN, -STEER_DELTA_UP),
+                  val_last + STEER_DELTA_UP)
+  else:
+    val = np.clip(val,
+                  val_last - STEER_DELTA_UP,
+                  min(val_last + STEER_DELTA_DOWN, STEER_DELTA_UP))
+
+  return float(val)
+
 
 def apply_meas_steer_torque_limits(apply_torque, apply_torque_last, motor_torque, LIMITS):
   return int(round(apply_dist_to_meas_limits(apply_torque, apply_torque_last, motor_torque,
