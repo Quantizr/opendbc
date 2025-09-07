@@ -48,7 +48,7 @@ class CarController(CarControllerBase, MadsCarController):
                                           CarControllerParams.STEER_DELTA_UP, CarControllerParams.STEER_DELTA_DOWN,
                                           CarControllerParams.STEER_ERROR_MAX, steer_max, steer_max*0.8) # STEER_MAX_POS is left, STEER_MAX_NEG is right
       can_sends.append(create_steer_command(self.frame, SteeringModes.TorqueControl, apply_steer))
-    elif self.apply_steer_last != 0:
+    elif not CS.out.brakePressed and not CS.out.gasPressed and self.apply_steer_last != 0:
       can_sends.append(create_steer_command(self.frame, SteeringModes.SoftOff, self.apply_steer_last))
       apply_steer = CS.out.steeringTorqueEps
     else:
