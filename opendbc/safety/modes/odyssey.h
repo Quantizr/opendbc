@@ -1,6 +1,6 @@
 #pragma once
 
-#include "opendbc/safety/safety_declarations.h"
+#include "opendbc/safety/declarations.h"
 
 #define CAN_ACTUATOR_TQ_FAC 0.125
 #define CAN_ACTUATOR_CONTROL_STATUS_SOFTOFF_BIT 2
@@ -133,7 +133,7 @@ static safety_config odyssey_init(uint16_t param) {
     {.msg = {{0x22F, 1, 8, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true, .frequency = 100U}, { 0 }, { 0 }}}, //STEERING_STATUS
   };
 
-  UNUSED(param);
+  SAFETY_UNUSED(param);
   safety_config ret = BUILD_SAFETY_CFG(odyssey_rx_checks, ODYSSEY_TX_MSGS);
   ret.disable_forwarding = true;
   return ret;

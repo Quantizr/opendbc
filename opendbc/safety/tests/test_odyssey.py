@@ -5,11 +5,11 @@ import numpy as np
 from opendbc.safety.tests.libsafety import libsafety_py
 import opendbc.safety.tests.common as common
 from opendbc.car.structs import CarParams
-from opendbc.safety.tests.common import CANPackerPanda, MAX_WRONG_COUNTERS
+from opendbc.safety.tests.common import CANPackerSafety, MAX_WRONG_COUNTERS
 from opendbc.can.packer import CANPacker
 
 
-class TestOdyssey(common.PandaCarSafetyTest):
+class TestOdyssey(common.CarSafetyTest):
   TX_MSGS = [[0x22E, 1]]
   RELAY_MALFUNCTION_ADDRS = {1: (0x22E, )}
   FWD_BUS_LOOKUP = {}
@@ -18,8 +18,8 @@ class TestOdyssey(common.PandaCarSafetyTest):
   STEER_BUS = 1
 
   def setUp(self):
-    self.packer = CANPackerPanda("honda_odyssey_2005")
-    self.packer_steer = CANPackerPanda("ocelot_controls")
+    self.packer = CANPackerSafety("honda_odyssey_2005")
+    self.packer_steer = CANPackerSafety("ocelot_controls")
     self.safety = libsafety_py.libsafety
     self.safety.set_safety_hooks(CarParams.SafetyModel.hondaOdyssey, 0)
     self.safety.init_tests()
@@ -36,30 +36,30 @@ class TestOdyssey(common.PandaCarSafetyTest):
       "CRUISE_ENGAGED": cruise_on,
       "BRAKE_PRESSED": brake_pressed,
     }
-    return self.packer.make_can_msg_panda("POWERTRAIN_DATA", self.PT_BUS, values)
+    return self.packer.make_can_msg_safety("POWERTRAIN_DATA", self.PT_BUS, values)
 
   def _pcm_status_msg(self, enable):
     return self._powertrain_data_msg(cruise_on=enable)
 
   def _speed_msg(self, speed):
     values = {"XMISSION_SPEED": speed}
-    return self.packer.make_can_msg_panda("ENGINE_DATA", self.PT_BUS, values)
+    return self.packer.make_can_msg_safety("ENGINE_DATA", self.PT_BUS, values)
 
   def _acc_state_msg(self, main_on):
     values = {"CRUISE_MAIN": main_on}
-    return self.packer.make_can_msg_panda("CRUISE_CONTROL", self.PT_BUS, values)
+    return self.packer.make_can_msg_safety("CRUISE_CONTROL", self.PT_BUS, values)
 
   def _button_msg(self, buttons, main_on=False, bus=None):
     bus = self.PT_BUS if bus is None else bus
     values = {"CRUISE_BUTTONS": buttons}
-    return self.packer.make_can_msg_panda("CRUISE_CONTROL", bus, values)
+    return self.packer.make_can_msg_safety("CRUISE_CONTROL", bus, values)
 
   def _user_brake_msg(self, brake):
     return self._powertrain_data_msg(brake_pressed=brake)
 
   def _user_gas_msg(self, gas):
     values = {"DRIVER_THROTTLE_POSITION": gas*2} # gas > 1 = gas_pressed
-    return self.packer.make_can_msg_panda("DRIVER_THROTTLE_POSITION", self.PT_BUS, values)
+    return self.packer.make_can_msg_safety("DRIVER_THROTTLE_POSITION", self.PT_BUS, values)
 
   def _send_steer_msg(self, mode, steer):
     values = {
@@ -73,8 +73,7 @@ class TestOdyssey(common.PandaCarSafetyTest):
     addr = msg[0]
     dat  = msg[1]
     values["CHECKSUM"] = self._calc_checksum_8bit(dat, addr)
-    return self.packer_steer.make_can_msg_panda("STEERING_COMMAND", self.STEER_BUS, values)
-
+    return self.packer_steer.make_can_msg_safety("STEERING_COMMAND", self.STEER_BUS, values)
 
   def _calc_checksum_8bit(self, work_data: bytearray, msg_id: int): # 0xb8 0x1a0 0x19e 0xaa 0xbf
     checksum = msg_id
@@ -97,5 +96,4 @@ class TestOdyssey(common.PandaCarSafetyTest):
 
 
 if __name__ == "__main__":
-
   unittest.main()
