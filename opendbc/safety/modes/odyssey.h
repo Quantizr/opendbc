@@ -121,7 +121,7 @@ static safety_config odyssey_init(uint16_t param) {
   static const CanMsg ODYSSEY_TX_MSGS[] = {{0x22E, 1, 5, .check_relay = true}}; //STEERING_COMMAND
 
   static RxCheck odyssey_rx_checks[] = {
-    {.msg = {{0x405, 0, 8, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true, .frequency = 3U}, { 0 }, { 0 }}}, //BODY
+    {.msg = {{0x405, 0, 8, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true, .ignore_frequency_check = true, .frequency = 3U}, { 0 }, { 0 }}}, //BODY (3Hz: below the 10Hz min-freq floor, so opt out of the frequency check)
     {.msg = {{0x6A, 0, 8, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true, .frequency = 143U}, { 0 }, { 0 }}}, //BRAKE_PRESSURE
     {.msg = {{0xD4, 0, 8, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true, .frequency = 100U}, { 0 }, { 0 }}}, //CRUISE_CONTROL
     {.msg = {{0xAA, 0, 8, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true, .frequency = 100U}, { 0 }, { 0 }}}, //DRIVER_THROTTLE_POSITION
