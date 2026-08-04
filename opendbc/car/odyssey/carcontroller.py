@@ -64,7 +64,7 @@ class CarController(CarControllerBase, MadsCarController):
     self.cruise_enabled_prev = CC.enabled
 
     new_actuators = actuators.as_builder()
-    new_actuators.torque = self.apply_steer_last / CarControllerParams.STEER_MAX
+    new_actuators.torque = self.apply_steer_last / steer_max # normalize so a full command is 1.0 at any speed, right stays clipped to 0.8
     new_actuators.torqueOutputCan = self.apply_steer_last
 
     self.frame += 1
