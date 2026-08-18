@@ -118,7 +118,7 @@ class CarState(CarStateBase):
     ret.cruiseState.speed = cp.vl["CRUISE_CONTROL"]["CRUISE_SPEED"] * CV.KPH_TO_MS
 
 
-    ret.brakeDEPRECATED = cp.vl["BRAKE_PRESSURE"]["BRAKE_PRESSURE"]
+    ret.deprecated.brake = cp.vl["BRAKE_PRESSURE"]["BRAKE_PRESSURE"]
     ret.brakePressed = (cp.vl["POWERTRAIN_DATA"]["BRAKE_PRESSED"] != 0)
     ret.cruiseState.enabled = cp.vl["POWERTRAIN_DATA"]["CRUISE_ENGAGED"] != 0
     ret.cruiseState.available = bool(cp.vl["CRUISE_CONTROL"]["CRUISE_MAIN"])
