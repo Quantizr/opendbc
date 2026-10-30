@@ -38,6 +38,9 @@ class TestOdyssey(common.CarSafetyTest):
     }
     return self.packer.make_can_msg_safety("POWERTRAIN_DATA", self.PT_BUS, values)
 
+  def _ignore_frequency_check_msgs(self):
+    return [self.packer.make_can_msg_safety("BODY", self.PT_BUS, {})]
+
   def _pcm_status_msg(self, enable):
     return self._powertrain_data_msg(cruise_on=enable)
 
