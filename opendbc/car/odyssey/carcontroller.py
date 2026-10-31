@@ -38,15 +38,18 @@ class CarController(CarControllerBase, MadsCarController):
     # Send CAN commands
     can_sends = []
 
-    steer_max = float(np.interp(CS.out.vEgoRaw, CarControllerParams.STEER_MAX_LOOKUP[0], CarControllerParams.STEER_MAX_LOOKUP[1]))
+    steer_max = float(np.interp(CS.out.vEgoRaw, *CarControllerParams.STEER_MAX_LOOKUP))
+    steer_max_right = steer_max * float(np.interp(CS.out.vEgoRaw, *CarControllerParams.STEER_MAX_RIGHT_SCALE_LOOKUP))
 
     # *** apply steering torque ***
     if CC.latActive:
-      new_steer = CC.actuators.torque * steer_max
+      # scale (not clip) right torque so a full right command maps to steer_max_right, otherwise the clip looks like
+      # steer_limited_by_safety to controlsd, which freezes the integrator and suppresses the steer saturated alert
+      new_steer = CC.actuators.torque * (steer_max if CC.actuators.torque > 0 else steer_max_right)
       # explicitly clip torque before sending on CAN
       apply_steer = apply_dist_to_meas_limits_asym(new_steer, self.apply_steer_last, CS.out.steeringTorqueEps,
                                           CarControllerParams.STEER_DELTA_UP, CarControllerParams.STEER_DELTA_DOWN,
-                                          CarControllerParams.STEER_ERROR_MAX, steer_max, steer_max*0.8) # STEER_MAX_POS is left, STEER_MAX_NEG is right
+                                          CarControllerParams.STEER_ERROR_MAX, steer_max, steer_max_right) # STEER_MAX_POS is left, STEER_MAX_NEG is right
       can_sends.append(create_steer_command(self.frame, SteeringModes.TorqueControl, apply_steer))
     elif not CS.out.brakePressed and not CS.out.gasPressed and self.apply_steer_last != 0:
       can_sends.append(create_steer_command(self.frame, SteeringModes.SoftOff, self.apply_steer_last))
@@ -64,7 +67,8 @@ class CarController(CarControllerBase, MadsCarController):
     self.cruise_enabled_prev = CC.enabled
 
     new_actuators = actuators.as_builder()
-    new_actuators.torque = self.apply_steer_last / steer_max # normalize so a full command is 1.0 at any speed, right stays clipped to 0.8
+    # normalize so a full command is 1.0 on each side at any speed
+    new_actuators.torque = self.apply_steer_last / (steer_max if self.apply_steer_last > 0 else steer_max_right)
     new_actuators.torqueOutputCan = self.apply_steer_last
 
     self.frame += 1

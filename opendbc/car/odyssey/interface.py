@@ -3,7 +3,7 @@ from math import exp
 
 import numpy as np
 from opendbc.car import get_safety_config, structs
-from opendbc.car.odyssey.values import CAR
+from opendbc.car.odyssey.values import CAR, CarControllerParams
 from opendbc.car.odyssey.carcontroller import CarController
 from opendbc.car.odyssey.carstate import CarState
 from opendbc.car.interfaces import CarInterfaceBase, TorqueFromLateralAccelCallbackType, LateralAccelFromTorqueCallbackType
@@ -50,7 +50,10 @@ class CarInterface(CarInterfaceBase):
       # return np.interp(latcontrol_inputs.vego, [5., 17.], [lowSpeedTorque, torque]) #+ friction_mod
 
     lataccel_values = np.arange(-5.0, 5.0, 0.01)
-    torque_values = [torque_from_lateral_accel_siglin_func(x) for x in lataccel_values]
+    torque_values = np.array([torque_from_lateral_accel_siglin_func(x) for x in lataccel_values])
+    # positive torque is right here (latcontrol_torque negates it), where a full command is STEER_MAX_RIGHT_SCALE of steer max.
+    # there's no speed input, so this is exact above 17 m/s and gives more right torque per request at lower speeds
+    torque_values[torque_values > 0] /= CarControllerParams.STEER_MAX_RIGHT_SCALE
     assert min(torque_values) < -1 and max(torque_values) > 1, "The torque values should cover the range [-1, 1]"
     return torque_values, lataccel_values
 

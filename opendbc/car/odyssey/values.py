@@ -14,6 +14,8 @@ class CarControllerParams:
   STEER_STEP = 1 # 100Hz
   STEER_MAX = 6.5  # Nm * 2
   STEER_MAX_LOOKUP = [5, 17], [9, 6.5]
+  STEER_MAX_RIGHT_SCALE = 0.8  # right (negative) torque is scaled to this fraction of steer max above 17 m/s
+  STEER_MAX_RIGHT_SCALE_LOOKUP = [5, 17], [1.0, STEER_MAX_RIGHT_SCALE]
   STEER_DELTA_UP = 8 / 100       # 4 Nm/s
   STEER_DELTA_DOWN = 10 / 100     # 5 Nm/s
   STEER_ERROR_MAX = 1     # max delta between torque cmd and torque motor
