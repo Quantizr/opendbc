@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from opendbc.car import structs
 from opendbc.car.lateral import apply_dist_to_meas_limits_asym
@@ -9,6 +11,10 @@ from opendbc.sunnypilot.car.honda.mads import MadsCarController
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
+
+
+def floor_to_can_step(torque: float) -> float:
+  return math.floor(torque / CarControllerParams.STEER_CAN_STEP) * CarControllerParams.STEER_CAN_STEP
 
 
 class CarController(CarControllerBase, MadsCarController):
@@ -40,6 +46,8 @@ class CarController(CarControllerBase, MadsCarController):
 
     steer_max = float(np.interp(CS.out.vEgoRaw, *CarControllerParams.STEER_MAX_LOOKUP))
     steer_max_right = steer_max * float(np.interp(CS.out.vEgoRaw, *CarControllerParams.STEER_MAX_RIGHT_SCALE_LOOKUP))
+    # floor to whole CAN steps so rounding on CAN can't put the command above the panda safety limit
+    steer_max, steer_max_right = floor_to_can_step(steer_max), floor_to_can_step(steer_max_right)
 
     # *** apply steering torque ***
     if CC.latActive:
@@ -50,6 +58,10 @@ class CarController(CarControllerBase, MadsCarController):
       apply_steer = apply_dist_to_meas_limits_asym(new_steer, self.apply_steer_last, CS.out.steeringTorqueEps,
                                           CarControllerParams.STEER_DELTA_UP, CarControllerParams.STEER_DELTA_DOWN,
                                           CarControllerParams.STEER_ERROR_MAX, steer_max, steer_max_right) # STEER_MAX_POS is left, STEER_MAX_NEG is right
+      # clip to the measured torque again after rate limiting: STEER_DELTA_DOWN is less than one CAN step, so the rate limit
+      # can hold the command more than STEER_ERROR_MAX past the measured torque, which panda safety rejects
+      apply_steer = float(np.clip(apply_steer, min(CS.out.steeringTorqueEps, 0) - CarControllerParams.STEER_ERROR_MAX,
+                                  max(CS.out.steeringTorqueEps, 0) + CarControllerParams.STEER_ERROR_MAX))
       can_sends.append(create_steer_command(self.frame, SteeringModes.TorqueControl, apply_steer))
     elif not CS.out.brakePressed and not CS.out.gasPressed and self.apply_steer_last != 0:
       can_sends.append(create_steer_command(self.frame, SteeringModes.SoftOff, self.apply_steer_last))
@@ -67,7 +79,8 @@ class CarController(CarControllerBase, MadsCarController):
     self.cruise_enabled_prev = CC.enabled
 
     new_actuators = actuators.as_builder()
-    # normalize so a full command is 1.0 on each side at any speed
+    # normalize so a full command is 1.0 on each side at any speed. use the unrounded value, rounding to CAN steps would make
+    # this differ from the request by more than controlsd's steer_limited_by_safety threshold
     new_actuators.torque = self.apply_steer_last / (steer_max if self.apply_steer_last > 0 else steer_max_right)
     new_actuators.torqueOutputCan = self.apply_steer_last
 

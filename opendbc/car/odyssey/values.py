@@ -19,6 +19,7 @@ class CarControllerParams:
   STEER_DELTA_UP = 8 / 100       # 4 Nm/s
   STEER_DELTA_DOWN = 10 / 100     # 5 Nm/s
   STEER_ERROR_MAX = 1     # max delta between torque cmd and torque motor
+  STEER_CAN_STEP = 0.125  # STEER_TORQUE resolution on CAN
 
   def __init__(self, CP):
     pass
